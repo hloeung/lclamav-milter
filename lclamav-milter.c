@@ -335,8 +335,6 @@ int main(int argc, char **argv)
 
 	av_limits.maxreclevel = 8;
 	av_limits.maxfiles = 1000;
-	av_limits.maxmailrec = 64;
-	av_limits.maxratio = 300;
 	av_limits.maxfilesize = config.maxsize;
 	av_limits.archivememlim = 0;
 
@@ -364,6 +362,7 @@ int main(int argc, char **argv)
 
 	mlog(LOG_INFO, "Starting Sendmail %s filter '%s'",
 	     smfilter.xxfi_name, config.pname);
+	mlog(LOG_INFO, "$Id$");
 	mlog(LOG_INFO, "libclamav (ver. %s) loaded with %d signatures",
 	     cl_retver(), av_sigs);
 
@@ -730,10 +729,21 @@ sfsistat mlfi_eom(SMFICTX * ctx)
 				CL_SCAN_STDOPT | CL_SCAN_ARCHIVE |
 				CL_SCAN_MAIL | CL_SCAN_OLE2 | CL_SCAN_HTML
 				| CL_SCAN_PE | CL_SCAN_ALGORITHMIC |
-				CL_SCAN_ELF | CL_SCAN_PHISHING_DOMAINLIST);
+				CL_SCAN_ELF);
 
 		if ((ret == CL_CLEAN) || (ret == CL_VIRUS))
 			break;
+	}
+
+	/* skip messages with oversized archive attachments */
+	if ((virname != NULL) && (*virname == 'O')
+	    && (strlen(virname) == 13)
+	    && (strncmp(virname, "Oversized.Zip", 13) == 0)) {
+		mlog(LOG_INFO,
+		     "%s: Oversized zip: from=%s, size=%d, relay=%s, nrcpts=%d",
+		     priv->msgid, priv->envfrom, priv->msgsize,
+		     priv->connectaddr, priv->rcptcnt);
+		ret = CL_CLEAN;
 	}
 
 	switch (ret) {
@@ -742,7 +752,6 @@ sfsistat mlfi_eom(SMFICTX * ctx)
 		break;
 
 	case CL_VIRUS:		/* Oh-o! Virus found */
-
 		/* for each recipient, log */
 		pnode = priv->rcpth;
 		while (pnode != NULL) {
