@@ -950,7 +950,7 @@ static void daemonize(void)
 
 	config.daemon = 1;
 
-	openlog(config.pname, LOG_PID, LOG_LOCAL3);
+	openlog(config.pname, LOG_PID, LOG_MAIL);
 
 	i = fork();
 	if (i == -1)
