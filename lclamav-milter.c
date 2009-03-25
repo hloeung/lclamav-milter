@@ -116,7 +116,6 @@ struct config {
 
 struct cl_engine *av_engine;
 unsigned int av_sigs;
-struct cl_limits av_limits;
 
 /* Default TEMPFAIL messages (used when unable to scan msg) */
 char *smtp_temp_fail_rcode = "452";
@@ -311,32 +310,35 @@ int main(int argc, char **argv)
 		exit(EX_USAGE);
 	}
 
-	av_engine = NULL;
 	av_sigs = 0;
 #ifdef DEBUG
 	cl_debug();
 #endif
-	cl_settempdir(config.tmpdir, 0);
-	ret = cl_load(cl_retdbdir(), &av_engine, &av_sigs, CL_DB_PHISHING);
+	cl_init(0);
+	av_engine = cl_engine_new();
+	cl_engine_set_str(av_engine, CL_ENGINE_TMPDIR, config.tmpdir);
+	cl_engine_set_num(av_engine, CL_ENGINE_KEEPTMP, 0);
+	ret = cl_load(cl_retdbdir(), av_engine, &av_sigs,
+		      CL_DB_STDOPT | CL_DB_PHISHING);
 	if (ret != CL_SUCCESS) {
 		mlog(LOG_ERR, "Unable to load ClamAV database: %s",
 		     cl_strerror(ret));
 		exit(EX_UNAVAILABLE);
 	}
 
-	ret = cl_build(av_engine);
+	ret = cl_engine_compile(av_engine);
 	if (ret != CL_SUCCESS) {
 		mlog(LOG_ERR,
 		     "Unable to prepare ClamAV detection engine: %s",
 		     cl_strerror(ret));
-		cl_free(av_engine);
+		cl_engine_free(av_engine);
 		exit(EX_UNAVAILABLE);
 	}
 
-	av_limits.maxreclevel = 8;
-	av_limits.maxfiles = 1000;
-	av_limits.maxfilesize = config.maxsize;
-	av_limits.archivememlim = 0;
+	cl_engine_set_num(av_engine, CL_ENGINE_MAX_RECURSION, 8);
+	cl_engine_set_num(av_engine, CL_ENGINE_MAX_FILES, 1000);
+	cl_engine_set_num(av_engine, CL_ENGINE_MAX_FILESIZE,
+			  config.maxsize);
 
 	umask(0027);
 
@@ -387,7 +389,7 @@ int main(int argc, char **argv)
 		closelog();
 
 	if (av_engine != NULL)
-		cl_free(av_engine);
+		cl_engine_free(av_engine);
 
 	return ret;
 }
@@ -723,13 +725,14 @@ sfsistat mlfi_eom(SMFICTX * ctx)
 
 	for (i = MAXRETRY; i > 0; i--) {
 
-		ret =
-		    cl_scanfile(priv->fname, &virname, NULL, av_engine,
-				&av_limits,
-				CL_SCAN_STDOPT | CL_SCAN_ARCHIVE |
-				CL_SCAN_MAIL | CL_SCAN_OLE2 | CL_SCAN_HTML
-				| CL_SCAN_PE | CL_SCAN_ALGORITHMIC |
-				CL_SCAN_ELF);
+		ret = cl_scanfile(priv->fname, &virname, NULL,
+				  av_engine, CL_SCAN_STDOPT
+				  | CL_SCAN_ARCHIVE
+				  | CL_SCAN_MAIL
+				  | CL_SCAN_OLE2
+				  | CL_SCAN_HTML
+				  | CL_SCAN_PE
+				  | CL_SCAN_ALGORITHMIC | CL_SCAN_ELF);
 
 		if ((ret == CL_CLEAN) || (ret == CL_VIRUS))
 			break;
