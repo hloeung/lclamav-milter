@@ -959,15 +959,18 @@ static void daemonize(void)
 		exit(0);
 
 	setsid();
-	chdir("/");
+	if (chdir("/") != 0)
+		exit(EX_UNAVAILABLE);
 
 	for (i = getdtablesize(); i >= 0; i--)
 		close(i);
 
 	/* handle stdin, stdout, and stderr */
 	i = open("/dev/null", O_RDWR);
-	dup(i);
-	dup(i);
+	if (dup(i) == -1)
+		exit(EX_UNAVAILABLE);
+	if (dup(i) == -1)
+		exit(EX_UNAVAILABLE);
 }
 
 static int drop_privs(const char *usr, const char *grp)
