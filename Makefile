@@ -1,6 +1,6 @@
 # $Id$
 
-WARN     = -Wall -Wpointer-arith -Wstrict-prototypes -O2
+WARN     = -Wall -Wextra -Wpointer-arith -Wstrict-prototypes -O2
 LIBS     = -lmilter -lpthread -lclamav
 PROGNAME = lclamav-milter
 
