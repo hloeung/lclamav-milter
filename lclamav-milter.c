@@ -437,8 +437,9 @@ libclamav version: %s\n", cl_retver());
 
 static void mlog(const int priority, const char *fmt, ...)
 {
-	char tbuf[28];
+	char tbuf[15];
 	time_t t;
+	struct tm tm;
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -449,7 +450,8 @@ static void mlog(const int priority, const char *fmt, ...)
 
 	else {
 		t = time(NULL);
-		fprintf(stderr, "%.15s ", ctime_r(&t, tbuf) + 4);
+		strftime(tbuf, sizeof(tbuf), "%b %e %T", localtime_r(&t, &tm));
+		fprintf(stderr, "%.15s ", tbuf);
 		vfprintf(stderr, fmt, ap);
 		fprintf(stderr, "\n");
 		fflush(stderr);
