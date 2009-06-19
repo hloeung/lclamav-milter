@@ -463,6 +463,7 @@ sfsistat mlfi_connect(SMFICTX * ctx, char *hostname, _SOCK_ADDR * hostaddr)
 	struct mlfiPriv *priv;
 	char *p;
 	struct sockaddr_in *phostaddr;
+	uint32_t saddr;
 	size_t len;
 
 	/* allocate some private memory */
@@ -493,6 +494,7 @@ sfsistat mlfi_connect(SMFICTX * ctx, char *hostname, _SOCK_ADDR * hostaddr)
 	if (p == NULL) {
 		/* failed to get symbol, so we use hostaddr */
 		phostaddr = (struct sockaddr_in *) hostaddr;
+		saddr = htonl(phostaddr->sin_addr.s_addr);
 
 		/* "unknown [xxx.xxx.xxx.xxx]" + '\0' */
 		p = malloc(26);
@@ -502,10 +504,10 @@ sfsistat mlfi_connect(SMFICTX * ctx, char *hostname, _SOCK_ADDR * hostaddr)
 			return SMFIS_ACCEPT;
 		}
 		snprintf(p, 18, "unknown [%d.%d.%d.%d]",
-			 phostaddr->sin_addr.s_addr & 0x000000ff,
-			 (phostaddr->sin_addr.s_addr & 0x0000ff00) >> 8,
-			 (phostaddr->sin_addr.s_addr & 0x00ff0000) >> 16,
-			 (phostaddr->sin_addr.s_addr & 0xff000000) >> 24);
+			 (saddr & 0xff000000) >> 24,
+			 (saddr & 0x00ff0000) >> 16,
+			 (saddr & 0x0000ff00) >> 8,
+			 (saddr & 0x000000ff));
 		priv->connectaddr = p;
 	}
 
