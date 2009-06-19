@@ -95,10 +95,14 @@ struct smfiDesc smfilter = {
 	mlfi_eom,		/* end of message */
 	mlfi_abort,		/* message aborted */
 	mlfi_close,		/* connection cleanup */
+#if SMFI_VERSION > 2
 	NULL,			/* unknown SMTP commands */
+#endif				/* SMFI_VERSION > 2 */
+#if SMFI_VERSION > 3
 	mlfi_data,		/* DATA command */
 	NULL,			/* Once, at the start of each SMTP
 				   connection */
+#endif				/* SMFI_VERSION > 3 */
 };
 
 static void usage(const char *);
@@ -431,7 +435,8 @@ Usage: %s -b [bind address/socket] [-dh] [-D [debug level]]\n\
 
 	printf("\nReport bugs to Haw Loeung <hloeung@users.sourceforge.net>\n\
 $Id$\n\
-libclamav version: %s\n", cl_retver());
+libclamav version: %s\n",
+	       cl_retver());
 
 }
 
@@ -450,7 +455,8 @@ static void mlog(const int priority, const char *fmt, ...)
 
 	else {
 		t = time(NULL);
-		strftime(tbuf, sizeof(tbuf), "%b %e %T", localtime_r(&t, &tm));
+		strftime(tbuf, sizeof(tbuf), "%b %e %T",
+			 localtime_r(&t, &tm));
 		fprintf(stderr, "%.15s ", tbuf);
 		vfprintf(stderr, fmt, ap);
 		fprintf(stderr, "\n");
@@ -508,8 +514,7 @@ sfsistat mlfi_connect(SMFICTX * ctx, char *hostname, _SOCK_ADDR * hostaddr)
 		snprintf(p, 18, "unknown [%d.%d.%d.%d]",
 			 (saddr & 0xff000000) >> 24,
 			 (saddr & 0x00ff0000) >> 16,
-			 (saddr & 0x0000ff00) >> 8,
-			 (saddr & 0x000000ff));
+			 (saddr & 0x0000ff00) >> 8, (saddr & 0x000000ff));
 		priv->connectaddr = p;
 	}
 
