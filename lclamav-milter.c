@@ -615,6 +615,12 @@ sfsistat mlfi_envrcpt(SMFICTX * ctx, char **argv)
 		return SMFIS_ACCEPT;
 	}
 
+	/* is it addressed to abuse? */
+	if ((strncmp(argv[0], "<abuse@", 7) == 0)
+	    || (strncmp(argv[0], "abuse@", 6) == 0)) {
+		return SMFIS_CONTINUE;
+	}
+
 	/* store recipient's address */
 	rcpt->addr = strdup(argv[0]);
 	if (rcpt->addr == NULL) {
@@ -724,6 +730,12 @@ sfsistat mlfi_eom(SMFICTX * ctx)
 	if (priv->msgsize > (size_t) config.maxsize) {
 		priv->check = 0;
 		priv->stamp = STAMP_SIZE_EXCEEDED;
+	}
+
+	/* no recipients? skip checking */
+	if (priv->rcptcnt == 0) {
+		priv->check = 0;
+		priv->stamp = STAMP_NONE;
 	}
 
 	/* not checking for virus, so we stamp it with a few things */
