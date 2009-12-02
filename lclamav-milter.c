@@ -50,6 +50,7 @@ struct rcptNode {
 
 #define STAMP_NONE          0
 #define STAMP_SIZE_EXCEEDED 1
+#define STAMP_SKIPPED       2
 typedef uint8_t stamp_t;
 #define STAMP_HEADER_STATUS "X-lClamAV-AntiVirus"
 
@@ -735,7 +736,7 @@ sfsistat mlfi_eom(SMFICTX * ctx)
 	/* no recipients? skip checking */
 	if (priv->rcptcnt == 0) {
 		priv->check = 0;
-		priv->stamp = STAMP_NONE;
+		priv->stamp = STAMP_SKIPPED;
 	}
 
 	/* not checking for virus, so we stamp it with a few things */
@@ -745,6 +746,10 @@ sfsistat mlfi_eom(SMFICTX * ctx)
 		case STAMP_SIZE_EXCEEDED:
 			smfi_insheader(ctx, 0, STAMP_HEADER_STATUS,
 				       "Message not scanned because message size too large");
+			break;
+		case STAMP_SKIPPED:
+			smfi_insheader(ctx, 0, STAMP_HEADER_STATUS,
+				       "Message not scanned");
 			break;
 		default:
 			smfi_insheader(ctx, 0, STAMP_HEADER_STATUS,
