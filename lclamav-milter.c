@@ -572,25 +572,25 @@ sfsistat mlfi_envfrom(SMFICTX * ctx, char **argv)
 
 	/* store message ID */
 	p = smfi_getsymval(ctx, "{i}");
-	if (p == NULL) {
-		mlog(LOG_ERR, "%s: %s: Retrieve symbol '%s' failed",
-		     priv->connectfrom, "mlfi_envfrom()", "{i}");
-		mlfi_cleanup(ctx);
-		return SMFIS_ACCEPT;
+	if (p != NULL) {
+		priv->msgid = strdup(p);
+		if (priv->msgid == NULL) {
+			mlog(LOG_ERR, "%s: %s: Memory allocation failed",
+			     priv->connectfrom, "mlfi_envfrom()");
+			mlfi_cleanup(ctx);
+			return SMFIS_ACCEPT;
+		}
 	}
-	priv->msgid = strdup(p);
-	if (priv->msgid == NULL) {
-		mlog(LOG_ERR, "%s: %s: Memory allocation failed",
-		     priv->connectfrom, "mlfi_envfrom()");
-		mlfi_cleanup(ctx);
-		return SMFIS_ACCEPT;
-	}
+
+	else
+		priv->msgid = NULL;
 
 	/* store sender's address */
 	priv->envfrom = strdup(argv[0]);
 	if (priv->envfrom == NULL) {
 		mlog(LOG_ERR, "%s: %s: Memory allocation failed",
-		     priv->msgid, "mlfi_envfrom()");
+		     (priv->msgid != NULL)? priv->msgid : priv->connectfrom,
+		     "mlfi_envfrom()");
 		mlfi_cleanup(ctx);
 		return SMFIS_ACCEPT;
 	}
@@ -611,7 +611,8 @@ sfsistat mlfi_envrcpt(SMFICTX * ctx, char **argv)
 	rcpt = calloc(1, sizeof *rcpt);
 	if (rcpt == NULL) {
 		mlog(LOG_ERR, "%s: %s: Memory allocation failed",
-		     priv->msgid, "mlfi_envrcpt()");
+		     (priv->msgid != NULL)? priv->msgid : priv->connectfrom,
+		     "mlfi_envrcpt()");
 		mlfi_cleanup(ctx);
 		return SMFIS_ACCEPT;
 	}
@@ -626,7 +627,8 @@ sfsistat mlfi_envrcpt(SMFICTX * ctx, char **argv)
 	rcpt->addr = strdup(argv[0]);
 	if (rcpt->addr == NULL) {
 		mlog(LOG_ERR, "%s: %s: Memory allocation failed",
-		     priv->msgid, "mlfi_envrcpt()");
+		     (priv->msgid != NULL)? priv->msgid : priv->connectfrom,
+		     "mlfi_envrcpt()");
 		mlfi_cleanup(ctx);
 		return SMFIS_ACCEPT;
 	}
@@ -656,7 +658,8 @@ sfsistat mlfi_header(SMFICTX * ctx, char *headerf, char *headerv)
 
 	if (fprintf(priv->fp, "%s: %s\r\n", headerf, headerv) == EOF) {
 		mlog(LOG_ERR, "%s: %s: Unable to write message headers",
-		     priv->msgid, "mlfi_header()");
+		     (priv->msgid != NULL)? priv->msgid : priv->connectfrom,
+		     "mlfi_header()");
 		mlfi_cleanup(ctx);
 		return SMFIS_ACCEPT;
 	}
@@ -668,7 +671,27 @@ sfsistat mlfi_header(SMFICTX * ctx, char *headerf, char *headerv)
 sfsistat mlfi_eoh(SMFICTX * ctx)
 {
 	struct mlfiPriv *priv = GETCONTEXT(ctx);
+	char *msgid;
 
+	/*
+	 * In Postfix, the Sendmail macro 'i' is only available in the DATA,
+	 * EOH, and EOM milter protocol stages so we try get the msgid again
+	 */
+	if (priv->msgid != NULL)
+		goto check;
+
+	msgid = smfi_getsymval(ctx, "{i}");
+	if (msgid != NULL) {
+		priv->msgid = strdup(msgid);
+		if (priv->msgid == NULL) {
+			mlog(LOG_ERR, "%s: %s: Memory allocation failed",
+			     priv->connectfrom, "mlfi_data()");
+			mlfi_cleanup(ctx);
+			return SMFIS_TEMPFAIL;
+		}
+	}
+
+check:
 	if (priv->check == 0)
 		return SMFIS_CONTINUE;
 
