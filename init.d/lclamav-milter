@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# lclamav-milter  This shell script takes care of starting and stopping the
+#		lclamav-milter
+#
+# Author:       Haw Loeung <hloeung@users.sourceforge.net>
+# $Id$
+#
+# chkconfig: 2345 78 32
+# description: lclamav-milter - Sendmail Anti-virus  mail filter (milter)
+# processname: lclamav-milter
+# pidfile: /var/run/milter/lclamav-milter.pid
+
+# Source function library.
+. /etc/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ ${NETWORKING} = "no" ] && exit 0
+
+PROG="lclamav-milter"
+INSTPATH="/usr/local/sbin"
+DAEMON="yes"
+PID_FILE="/var/run/milter/lclamav-milter.pid"
+SOCKET="/var/run/milter/lclamav-milter.sock"
+DPARMS="--user milter --group milter --bind unix:$SOCKET"
+CMD="$INSTPATH/$PROG"
+
+RETVAL=0
+
+if [[ ! -x "$INSTPATH/$PROG" ]]; then
+	exit 0
+fi
+
+# set the stack size a bit lower
+ulimit -s 1024
+
+# set the number of open files higher
+ulimit -n 64000
+
+start() {
+        # Start daemons.
+        echo -n $"Starting $PROG: "
+
+	if [[ -r "$PD" ]]; then
+		return 1
+	fi
+
+        if [[ $DAEMON == "yes" ]]; then
+            daemon $CMD $DPARMS --daemon
+        else
+            echo "Running $CMD $DPARMS"
+            $CMD $DPARMS
+        fi
+
+	RETVAL=$?
+        echo
+	if [[ $RETVAL -eq 0 ]]; then
+		touch /var/lock/subsys/$PROG
+	fi
+	return $RETVAL
+}
+
+stop() {
+        echo -n $"Shutting down $PROG: "
+	killproc $PROG
+	RETVAL=$?
+        echo
+
+	if [[ $RETVAL -eq 0 ]]; then
+		[[ -e $PID_FILE ]] && rm -f $PID_FILE
+		[[ -e /var/lock/subsys/$PROG ]] && rm -f /var/lock/subsys/$PROG
+	fi
+	[[ -e $SOCKET ]] && rm -f $SOCKET
+	return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+        ;;
+  stop)
+	stop
+        ;;
+  status)
+	status $PROG
+	RETVAL=$?
+	;;
+  restart)
+	stop
+	start
+	RETVAL=$?
+	;;
+  condrestart)
+	if [ -f /var/lock/subsys/$PROG ]; then
+	    stop
+	    start
+	    RETVAL=$?
+	fi
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|restart|reload|condrestart|status}"
+        exit 1
+esac
+
+exit $RETVAL
+
