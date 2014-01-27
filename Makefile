@@ -1,6 +1,6 @@
 # $Id$
 #
-# Copyright 2007, 2008, 2009 Haw Loeung <hloeung@users.sourceforge.net>
+# Copyright (C) 2007-2014 Haw Loeung <h.loeung@unixque.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,18 +22,20 @@ PROGNAME = lclamav-milter
 
 INSTPATH = /usr/local/sbin/
 
-INCDIRS  = /usr/include/libmilter/
-LIBDIRS  = /usr/lib/
+INCDIRS  = -I/usr/include/libmilter/
+LIBDIRS  = -L/usr/lib/ -L/usr/lib/libmilter/
 
 default all: main
 
-main: lclamav-milter.c
-	$(CC) $(WARN) $(CFLAGS) -D_REENTRANT lclamav-milter.c -o $(PROGNAME) $(LIBS) -I $(INCDIRS) -L $(LIBDIRS)
+main: $(PROGNAME).c
+	$(CC) $(WARN) $(CFLAGS) -D_REENTRANT $(PROGNAME).c -o $(PROGNAME) $(LIBS) $(INCDIRS) $(LIBDIRS)
 
-install: lclamav-milter
-	[[ -e "$(INSTPATH)/$(PROGNAME)" ]] && cp -af "$(INSTPATH)/$(PROGNAME)" "$(INSTPATH)/$(PROGNAME).bak" || true
+install: $(PROGNAME)
+	if [ -f "$(INSTPATH)/$(PROGNAME)" ]; then \
+		cp -af "$(INSTPATH)/$(PROGNAME)" "$(INSTPATH)/$(PROGNAME).bak"; \
+	fi
 	install -m 755 -D $(PROGNAME) $(INSTPATH)/$(PROGNAME)
 	strip $(INSTPATH)/$(PROGNAME)
 
 clean:
-	[[ -e "$(PROGNAME)" ]] && rm -f $(PROGNAME)
+	if [ -f $(PROGNAME) ]; then rm -f $(PROGNAME); fi
