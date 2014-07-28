@@ -630,6 +630,7 @@ sfsistat mlfi_envrcpt(SMFICTX * ctx, char **argv)
 		mlog(LOG_ERR, "%s: %s: Memory allocation failed",
 		     (priv->msgid != NULL)? priv->msgid : priv->connectfrom,
 		     "mlfi_envrcpt()");
+		free(rcpt);
 		mlfi_cleanup(ctx);
 		return SMFIS_ACCEPT;
 	}
