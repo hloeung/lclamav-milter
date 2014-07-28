@@ -620,6 +620,7 @@ sfsistat mlfi_envrcpt(SMFICTX * ctx, char **argv)
 	/* is it addressed to abuse? */
 	if ((strncmp(argv[0], "<abuse@", 7) == 0)
 	    || (strncmp(argv[0], "abuse@", 6) == 0)) {
+		free(rcpt);
 		return SMFIS_CONTINUE;
 	}
 
