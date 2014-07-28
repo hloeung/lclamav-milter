@@ -1123,7 +1123,7 @@ static char *msg_create(const char *s1, const char *s2)
 	char *p;
 	size_t len;
 
-	len = strlen(s1) + strlen(s2);
+	len = strlen(s1) + strlen(s2) + 1;
 	p = malloc(len);
 	if (p == NULL)
 		return NULL;
