@@ -122,8 +122,9 @@ static char *msg_create(const char *, const char *);
 # define getopt_long(argc,argv,opts,lopt,lind) getopt(argc,argv,opts)
 #endif
 
-#define BUFLEN 64
+#define BUFLEN   64
 #define MAXRETRY 3
+#define UMASK    0027
 
 struct config {
 	char *pname;
@@ -359,7 +360,7 @@ int main(int argc, char **argv)
 	cl_engine_set_num(av_engine, CL_ENGINE_MAX_FILESIZE,
 			  config.maxsize);
 
-	umask(0027);
+	umask(UMASK);
 
 	if (smfi_setconn(oconn) == MI_FAILURE) {
 		mlog(LOG_ERR, "smfi_setconn() failed");
@@ -929,6 +930,7 @@ sfsistat mlfi_data(SMFICTX * ctx)
 		 fprefix, priv->msgid);
 
 	/* create temp file */
+	umask(UMASK);
 	fd = mkstemp(priv->fname);
 	if (fd == -1) {
 		mlog(LOG_ERR, "%s: %s: Unable to create file %s: %s",
