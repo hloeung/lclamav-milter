@@ -1021,7 +1021,7 @@ static void daemonize(void)
 	openlog(config.pname, LOG_PID, LOG_MAIL);
 
 	i = fork();
-	if (i == -1)
+	if (i < 0)
 		exit(EX_UNAVAILABLE);
 	if (i > 0)
 		exit(0);
@@ -1124,6 +1124,9 @@ static char *msg_create(const char *s1, const char *s2)
 {
 	char *p;
 	size_t len;
+
+	if (s2 == NULL)
+		return NULL;
 
 	len = strlen(s1) + strlen(s2) + 1;
 	p = malloc(len);
