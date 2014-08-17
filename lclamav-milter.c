@@ -1023,7 +1023,7 @@ static void daemonize(void)
 	openlog(config.pname, LOG_PID, LOG_MAIL);
 
 	i = fork();
-	if (i < 0)
+	if (i == -1)
 		exit(EX_UNAVAILABLE);
 	if (i > 0)
 		exit(0);
@@ -1037,6 +1037,8 @@ static void daemonize(void)
 
 	/* handle stdin, stdout, and stderr */
 	i = open("/dev/null", O_RDWR);
+	if (i < 0)
+		exit(EX_UNAVAILABLE);
 	if (dup(i) == -1)
 		exit(EX_UNAVAILABLE);
 	if (dup(i) == -1)
